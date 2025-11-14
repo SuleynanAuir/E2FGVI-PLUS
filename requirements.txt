@@ -1,0 +1,40 @@
+# Requirements file generated for the environment that successfully ran `test.py` on this machine
+# Python version: 3.12.4 (used to run and validate)
+
+# Core ML stack
+torch==2.4.0
+torchvision==0.19.0
+torchaudio==2.4.0
+
+# MMCV (pure-Python mmcv used in this run)
+mmcv==1.7.2
+# If you want native CUDA ops (faster deform_conv / ops), install mmcv-full
+# (must match your CUDA & PyTorch versions). Example (may need to change cu/torch tags):
+# pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/index.html
+
+# Image / IO
+opencv-python==4.10.0.84
+Pillow==10.4.0
+scikit-image==0.24.0
+
+# Numerics & utility
+numpy==1.26.4
+addict==2.4.0
+PyYAML==6.0.1
+regex==2024.7.24
+
+# Misc
+tqdm==4.66.4
+yapf==0.43.0
+matplotlib==3.9.1
+
+# Notes:
+# - This requirements file pins packages that were present in the Python environment
+#   that successfully executed `test.py` during verification on this machine.
+# - Some packages (mmcv-full with CUDA ops) require a matching CUDA / PyTorch wheel.
+#   If you need full mmcv ops, follow OpenMMLab's installation guide and pick the
+#   wheel matching your CUDA and PyTorch.
+# - To install quickly in a (fresh) virtualenv or conda environment:
+#     python -m pip install -r requirements.txt
+# - Prefer creating a conda env and installing PyTorch from the official channel
+#   that matches your CUDA runtime (see README_REQUIREMENTS.md for details).

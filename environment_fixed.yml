@@ -1,0 +1,22 @@
+name: e2fgvi
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch::pytorch
+  - pytorch::pytorch-cuda=12.4
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - pip
+  - pip:
+    - opencv-python==4.8.1.78
+    - tqdm==4.66.1
+    - pillow==10.1.0
+    - scikit-image==0.22.0
+    - prodict==0.10.5
+    - pyyaml==6.0.1
+    - mmcv-full==1.7.2
+    - tensorboard==2.14.1
+    - numpy==1.24.3
