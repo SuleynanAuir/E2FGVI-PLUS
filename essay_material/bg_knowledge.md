@@ -33,6 +33,8 @@
 <mark>光流场 & 光流估计<mark>
 
 (一帧capture的图像中，各像素的矢量位移)
+![alt text](material_img\image.png)
+
 
 流基方法（如特征传播模块）通常**只依赖于相邻的几帧**（例如 $t-2, t-1, t+1, t+2$）
 
