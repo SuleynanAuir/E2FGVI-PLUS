@@ -30,11 +30,23 @@
 光流 (Flow)：是视频修复的基石。它计算了图像序列中**每个像素点的瞬时运动速度 (pixel's Level Speed)**。
 常用网络： 早期的经典方法如 Farneback 或 Lucas-Kanade；在深度学习时代，常用的网络有 SPyNet (如 E2FGVI 中使用)、PWC-Net 和 RAFT，它们通过深度卷积网络或 Transformer 来预测更精确的稠密光流场 `
 
+专业的定义：时间依赖性光流 $F$ 的专业定义是指：图像序列中像素点在**相邻两个时间点之间**运动的瞬时速度或位移向量场 (需要指定时间)
+
+在专业文献中，光流场通常通过以下方式表示，以明确其起点和终点：从 $t$ 时刻到 $t+1$ 时刻的正向光流： $F_{t \to t+1}$表示 $I_t$ 上的像素 $p$ 移动到 $I_{t+1}$ 上的位置 $p + F_{t \to t+1}(p)$。从 $t+1$ 时刻到 $t$ 时刻的反向光流： $F_{t+1 \to t}$表示 $I_{t+1}$ 上的像素 $p'$ 移动到 $I_t$ 上的位置 $p' + F_{t+1 \to t}(p')$
+
+- 对光流场的时间指定是至关重要的，因为它直接决定了信息传播的方向和类型
+
+![alt text](material_img/optical-flow-for-traffic-monitoring-1060x726.png)
+
+- 特征传播 (Feature Propagation)：要将 $I_{t-1}$ 的特征传播到 $I_t$，必须使用正向流 $F_{t-1 \to t}$。要将 $I_{t+1}$ 的特征传播到 $I_t$，必须使用反向流 $F_{t+1 \to t}$。
+
+- 双向传播 (Bidirectional Propagation)：E2FGVI 采用双向传播，意味着它同时计算并利用了前后帧的光流。例如，在修复 $I_t$ 时，它依赖于 $F_{t-1 \to t}$ 和 $F_{t+1 \to t}$ 两种光流场。
+
+
 <mark>光流场 & 光流估计<mark>
 
 (一帧capture的图像中，各像素的矢量位移)
 ![alt text](material_img\image.png)
-
 
 流基方法（如特征传播模块）通常**只依赖于相邻的几帧**（例如 $t-2, t-1, t+1, t+2$）
 
@@ -140,13 +152,16 @@ https://gemini.google.com/app/646150cce587e7b1
 ### 3.0 整体框架概览
 
 * 输入：被遮掩／破损的视频序列 $({X_t ∈ \mathbb R^{H×W×3} \mid t=1…T}) 及对应帧掩码 ({M_t ∈ \mathbb R^{H×W×1}})$。 
+  - input: 每帧图像 + corresponding mask
 * 首先用一个上下文编码器 (context encoder) 将每帧映射至低分辨率特征空间。 
-* 紧接着：
+  - Context Encoder 降维：通过堆叠 (Stacking) 步长大于 1 的卷积层，对输入帧进行**空间下采样(降低二维分辨率)和通道升维，将原始高分辨率图像转换为具有语义信息且计算高效的低分辨率特征表示 $F_{\text{low}}$
+
+* 紧接着 <mark>三大模块<mark>：
 
   1. 流完成（flow completion）模块：对相邻帧估计并完成光流（前向、后向） 。 
   2. 特征传播 (feature propagation) 模块：利用已完成的光流在特征层级中执行双向传播（向前、向后）和融合。 
   3. 内容幻觉 (content hallucination) 模块：采用多层“时空焦点 Transformer”来结合传播后的特征与来自非本地帧的特征，以生成最终补齐的帧特征。 
-* 最后一个帧解码器 (frame‐level decoder) 将补齐后的特征上采样回原始分辨率，输出修复后的视频 ({ \hat Y_t }) 。 
+* 最后一个帧解码器 (frame‐level decoder) 将补齐后的特征上采样回原始分辨率，输出修复后的视频 $({ \hat Y_t })$ 。 
 * 整个网络是可微分的（differentiable）且可端到端训练。 
 
 ![Image](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgmGk2OrWHu3y31AFEDJ_0HowAcEqTMVEtga7D4IhzuiqCAp4H6AY9zSkPC9eIXJX3NPiN85bM59DJf979KUebmgK8FKpe2gCH0vtGSDwwLcASFi8BJnzh3DccsuPTeBBs9PQAVxz_cf7xcirJByLgXXHGK3bY6JaPA7QM_jSsi4GEgJT9Qt_CFMIDc4g/s1216/architecture.png)
@@ -155,27 +170,24 @@ https://gemini.google.com/app/646150cce587e7b1
 
 ![Image](https://www.researchgate.net/publication/355777772/figure/fig4/AS%3A11431281210091568%401702000670139/The-pipeline-of-our-video-inpainting-approach-based-on-optical-flow-and-multiview-scene.tif)
 
-![Image](https://www.researchgate.net/publication/355777772/figure/fig4/AS%3A11431281210091568%401702000670139/The-pipeline-of-our-video-inpainting-approach-based-on-optical-flow-and-multiview-scene_Q320.jpg)
-
-![Image](https://www.researchgate.net/publication/336224014/figure/fig1/AS%3A809717848891393%401570063187530/The-structure-of-a-Transformer-Block.ppm)
 
 ![Image](https://www.researchgate.net/publication/363267726/figure/fig1/AS%3A11431281095392444%401667875730439/The-spatial-temporal-transformer-feature-extraction-model.png)
 
 ### 3.1 流完成 & 特征传播模块
 
-#### 流完成 (Flow Completion)
-
-* 文章先将原始被遮掩的视频帧下采样至 (1/4) 分辨率，记为 (X_t↓). 
-* 使用一个流估计网络 (F) 得到初始前向流 (\hat F_{i→j} = F(X_i↓, X_j↓)) 。 
-* 然后，通过训练学习使其输出接近 “真实光流” (F_{t→t+1}, F_{t→t-1})（使用被遮掩区外的真实帧估计） 的 L(*1) 损失：
-  [
+#### 流填充 (Flow Completion)
+- 原始视频帧 => 输入帧下采样，降低分辨率 => 初始化一个光流估计网络 (F) & 初始光流传播位移 => 学习网络，来逼近双向真实光流 $(F_{t→t+1}, F_{t→t-1})$
+* 文章先将原始被遮掩的视频帧下采样至 (1/4) 分辨率，记为 $(X_t↓)$
+* 使用一个流估计网络 (F) 得到初始前向流 $(\hat F_{i→j} = F(X_i↓, X_j↓))$ 。 
+* 然后，通过训练学习使其输出接近 “真实光流” $(F_{t→t+1}, F_{t→t-1})$（使用被遮掩区外的真实帧估计） 的 $L(*1)$ 损失：
+  $[
   L*{flow} = \sum_{t=1}^{T-1} | \hat F_{t→t+1} – F_{t→t+1}|*1 + \sum*{t=2}^T | \hat F_{t→t-1} – F_{t→t-1} |_1 .
-  ] 
+  ] $
 * 与传统方法相比，作者指出其流完成模块一次性前馈即可完成，而不是传统多阶段初始化＋细化。 
 
 #### 特征传播 (Feature Propagation)
-
-* 从上下文编码器得到局部邻近帧的特征集合 ({E_t ∈ ℝ^{H/4 × W/4 × C} \mid t=1…T_l}) 。 
+- 
+* 从上下文编码器得到局部邻近帧的特征集合 $({E_t ∈ ℝ^{H/4 × W/4 × C} \mid t=1…T_l})$ 。 
 * 以 ( \hat F_{t→t+1} ) 为例：它从帧 (t) 指向帧 (t+1) 的运动。作者将 ( E_{t+1} ) 的 “向后传播特征” ( \hat E^b_{t+1} ) 通过 warping（基于光流）至当前时刻，然后与 ( E_t ) 融合：
   [
   \hat E^b_t = P_b( E_t,; W(\hat E^b_{t+1},, \hat F_{t→t+1}) )
